@@ -1,141 +1,88 @@
-// include the required packages
-const express = require('express');
-const mysql = require('mysql2/promise');
-require('dotenv').config();
-const port = 3000;
+import React, { useEffect, useState } from 'react';
+import {
+  FlatList,
+  StatusBar,
+  Text,
+  TextInput,
+  View,
+  Image,
+  StyleSheet
+} from 'react-native';
 
-//database config info
-const dbConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-  waitForConnections: true,
-  connectionLimit: 100,
-  queueLimit: 0,
+let originalData = [];
+
+const App = () => {
+  const [myData, setMyData] = useState([]);
+
+  const myurl = "https://onlinecardappwebservice-rzei.onrender.com/allkpop";
+  // or /allkpop if testing KPOP
+
+  useEffect(() => {
+    fetch(myurl)
+        .then(response => response.json())
+        .then(myJson => {
+          setMyData(myJson);
+          originalData = myJson;
+        });
+  }, []);
+
+  const FilterData = (text) => {
+    if (text !== '') {
+      let filtered = originalData.filter(item =>
+          item.card_name?.includes(text) ||
+          item.group_name?.includes(text)
+      );
+      setMyData(filtered);
+    } else {
+      setMyData(originalData);
+    }
+  };
+
+  const renderItem = ({ item }) => (
+      <View style={styles.cardRow}>
+        <Text style={styles.cardName}>
+          {item.card_name || item.group_name}
+        </Text>
+        <Image
+            source={{ uri: item.card_pic || item.group_pic }}
+            style={styles.cardImage}
+        />
+      </View>
+  );
+
+  return (
+      <View>
+        <StatusBar />
+        <Text>Search:</Text>
+        <TextInput
+            style={{ borderWidth: 1 }}
+            onChangeText={FilterData}
+        />
+        <FlatList
+            data={myData}
+            renderItem={renderItem}
+        />
+      </View>
+  );
 };
 
-//initialize Express app
-const app = express();
-//helps app to read JSON
-app.use(express.json());
+export default App;
 
-//start the server
-app.listen(port, () => {
-  console.log('Server running on port', port);
-});
-
-//Example Route: Get all cards
-app.get('/allcards', async (req, res) => {
-  try {
-    let connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute('SELECT * FROM defaultdb.cards');
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({message: 'Server error for allcards' });
-  }
-});
-
-app.post('/addcard', async (req, res) => {
-  const{ card_name, card_pic} = req.body;
-  try {
-    let connection = await mysql.createConnection(dbConfig);
-    await connection.execute('INSERT INTO cards (card_name, card_pic) VALUES (?,?)', [card_name, card_pic]);
-    res.status(201).json({message: 'Card '+card_name+' added successfully.'});
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({message: 'Server error - could not add card '+card_name});
-  }
-});
-
-app.get('/tasks', async (req, res) => {
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute('SELECT * FROM rptasks');
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error retrieving tasks' });
-  }
-});
-
-app.post('/addtask', async (req, res) => {
-  const { task_name, task_status } = req.body;
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    await connection.execute(
-        'INSERT INTO rptasks (task_name, task_status) VALUES (?, ?)',
-        [task_name, task_status]
-    );
-    res.json({ message: 'Task added successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error adding task' });
-  }
-});
-
-
-
-app.put('/updatetask/:id', async (req, res) => {
-  const { id } = req.params;
-  const { task_name, task_status } = req.body;
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    await connection.execute(
-        'UPDATE rptasks SET task_name = ?, task_status = ? WHERE id = ?',
-        [task_name, task_status, id]
-    );
-    res.json({ message: 'Task updated successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error updating task' });
-  }
-});
-
-app.delete('/deletetask/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    await connection.execute(
-        'DELETE FROM rptasks WHERE id = ?',
-        [id]
-    );
-    res.json({ message: 'Task deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error deleting task' });
-  }
-});
-
-app.get('/allkpop', async (req, res) => {
-  try {
-    let connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute('SELECT * FROM kpop');
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error for allkpop' });
-  }
-});
-
-// Add a new KPOP group
-app.post('/addkpop', async (req, res) => {
-  const { group_name, group_pic } = req.body;
-  try {
-    let connection = await mysql.createConnection(dbConfig);
-    await connection.execute(
-        'INSERT INTO kpop (group_name, group_pic) VALUES (?, ?)',
-        [group_name, group_pic]
-    );
-    res.status(201).json({
-      message: 'KPOP group ' + group_name + ' added successfully.'
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: 'Server error - could not add KPOP group ' + group_name
-    });
-  }
+const styles = StyleSheet.create({
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    padding: 10,
+    marginVertical: 6,
+  },
+  cardName: {
+    flex: 1,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  cardImage: {
+    width: 120,
+    height: 160,
+  },
 });
