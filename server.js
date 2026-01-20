@@ -160,3 +160,22 @@ app.put('/updatekpop/:id', async (req, res) => {
     }
 });
 
+app.delete('/deletekpop/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        let connection = await mysql.createConnection(dbConfig);
+        await connection.execute(
+            'DELETE FROM kpop WHERE id = ?',
+            [id]
+        );
+        res.json({
+            message: 'KPOP group deleted successfully.'
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            message: 'Server error - could not delete KPOP group ' + id
+        });
+    }
+});
+
