@@ -139,3 +139,24 @@ app.post('/addkpop', async (req, res) => {
         });
     }
 });
+
+app.put('/updatekpop/:id', async (req, res) => {
+    const { id } = req.params;
+    const { group_name, group_pic } = req.body;
+    try {
+        let connection = await mysql.createConnection(dbConfig);
+        await connection.execute(
+            'UPDATE kpop SET group_name = ?, group_pic = ? WHERE id = ?',
+            [group_name, group_pic, id]
+        );
+        res.json({
+            message: 'KPOP group ' + group_name + ' updated successfully.'
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            message: 'Server error - could not update KPOP group ' + id
+        });
+    }
+});
+
